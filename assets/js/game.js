@@ -20,12 +20,6 @@ var game = {
 
     clicks.addPlayer('p1', 'Cid');
     clicks.addPlayer('p2', 'Cloud');
-    clicks.choice('p1', 'rock', 'Cid');
-    clicks.choice('p1', 'paper', 'Cid');
-    clicks.choice('p1', 'sciss', 'Cid');
-    clicks.choice('p2', 'rock', 'Tifa');
-    clicks.choice('p2', 'paper', 'Tifa');
-    clicks.choice('p2', 'sciss', 'Tifa');
     clicks.showDown('p1');
     clicks.showDown('p2');
   },
@@ -161,10 +155,12 @@ var clicks = {
   },
   showDown: function(player) {
     $('#'+player+'-showdown').on('click', function() {
+      display.rpsBtns(player);
       player === "p1" ? database.ref('/games/' + $('.arena').data('gameid') + '/')
                               .update({p1Ready: true}) :
                         database.ref('/games/' + $('.arena').data('gameid') + '/')
                               .update({p2Ready: true});
+      // let userId = $('#'+player).attr('data-user', userId);
       game.startMonitor();
     });
   },
@@ -181,7 +177,49 @@ var clicks = {
                               .update({p1RPS: choiceNum}) :
                         database.ref('/games/' + $('.arena').data('gameid') + '/')
                               .update({p2RPS: choiceNum});
+      display.activeChoice(player, choice);
     });
+  }
+}
+
+var display = {
+  rpsBtns: function(player) {
+    let rock = $('<button>').addClass('rock-btn');
+    rock.attr('id', player+'-rock').text('ROCK');
+    let paper = $('<button>').addClass('paper-btn');
+    paper.attr('id', player+'-paper').text('PAPER');
+    let sciss = $('<button>').addClass('sciss-btn');
+    sciss.attr('id', player+'-sciss').text('SCISSORS');
+    $('#'+player+'-btn-box').html(rock).append(paper).append(sciss);
+    clicks.choice(player, 'rock');
+    clicks.choice(player, 'paper');
+    clicks.choice(player, 'sciss');
+  },
+  showdownBtn: function() {
+    let p1Btn = $('<button>').addClass('showdown-btn');
+    p1Btn.attr('id', 'p1-showdown').text('SHOWDOWN');
+    let p2Btn = $('<button>').addClass('showdown-btn');
+    p2Btn.attr('id', 'p2-showdown').text('SHOWDOWN');
+    $('#p1-btn-box').html(p1Btn);
+    $('#p2-btn-box').html(p2Btn);
+    clicks.showDown('p1');
+    clicks.showDown('p2');
+  },
+  activeChoice: function(player, choice) {
+    switch (choice) {
+      case 'rock': $('#'+player+'-rock').addClass('active-rps');
+                   $('#'+player+'-paper').removeClass('active-rps');
+                   $('#'+player+'-sciss').removeClass('active-rps');
+                   break;
+      case 'paper': $('#'+player+'-rock').removeClass('active-rps');
+                   $('#'+player+'-paper').addClass('active-rps');
+                   $('#'+player+'-sciss').removeClass('active-rps');
+                   break;
+      case 'sciss': $('#'+player+'-rock').removeClass('active-rps');
+                   $('#'+player+'-paper').removeClass('active-rps');
+                   $('#'+player+'-sciss').addClass('active-rps');
+                   break;
+    }
   }
 }
 
@@ -210,6 +248,7 @@ var timer = {
 
       if (timer <= 0) {
         clearInterval(intervalId);
+        display.showdownBtn();
       }
     }, 1000);
   }
