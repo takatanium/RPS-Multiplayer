@@ -22,24 +22,28 @@
   	</div>
   	<div class="row">
   		<div class="player" id="p1">
-  			<h2>Player 1</h2>
+  			<h2 id="p1-header">Player 1</h2>
   			<div class="player-btn" id="p1-btn-box">
-          <!-- <button class="add-btn" id="p1-add">ADD PLAYER</button> -->
-          <button class="showdown-btn" id="p1-showdown">SHOWDOWN</button>
+<!--           <input type="text" class="input-userid" id="p1-input-user">
+          <button class="add-btn" id="p1-add">ADD PLAYER</button> -->
+<!--           <button class="showdown-btn" id="p1-showdown">SHOWDOWN</button> -->
 <!--           <button class="rock-btn" id="p1-rock">ROCK</button>
           <button class="paper-btn" id="p1-paper">PAPER</button>
           <button class="sciss-btn" id="p1-sciss">SCISSORS</button> -->
   			</div>
   		</div>
   		<div class="arena">
-        <div class="timer">Timer: <span id="timer"></span></div>
-        <div class="result">Result: <span id="result"></span></div>
+        <input type="text" class="input-user-field" id="input-user">
+        <button class="add-btn" id="join-game">JOIN GAME</button>
+<!--         <div class="timer">Timer: <span id="timer"></span></div>
+        <div class="result">Result: <span id="result"></span></div> -->
       </div>
   		<div class="player" id="p2">
-  			<h2>Player 2</h2>
+  			<h2 id="p2-header">Player 2</h2>
   			<div class="player-btn" id='p2-btn-box'>
-          <!-- <button class="add-btn" id="p2-add">ADD PLAYER</button> -->
-          <button class="showdown-btn" id="p2-showdown">SHOWDOWN</button>
+<!--           <input type="text" class="input-userid" id="p2-input-user">
+          <button class="add-btn" id="p2-add">ADD PLAYER</button> -->
+<!--           <button class="showdown-btn" id="p2-showdown">SHOWDOWN</button> -->
 <!--   				<button class="rock-btn" id="p2-rock">ROCK</button>
   				<button class="paper-btn" id="p2-paper">PAPER</button>
   				<button class="sciss-btn" id="p2-sciss">SCISSORS</button> -->
@@ -59,7 +63,7 @@
   		<div class="stats"><h2>Stats</h2></div>
   	</div>
   	<div class="row">
-  		<div class="history"></div>
+  		<div class="history" id="p1-history"></div>
   		<div class="chat">
   			<div class="log"></div>
   			<div class="message">
@@ -68,7 +72,7 @@
   			</div>
 
   		</div>
-  		<div class="history"></div>
+  		<div class="history" id="p2-history"></div>
   	</div>
   </div>
 
