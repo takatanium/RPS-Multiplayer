@@ -156,6 +156,7 @@ button {
 
 .log {
   flex: 1;
+  padding: 5px 5px 5px 5px;
 }
 
 #text-message {

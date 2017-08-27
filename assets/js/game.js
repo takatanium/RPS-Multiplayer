@@ -47,7 +47,6 @@ var game = {
       p2RPS: -1,
       p1Hist: [0,0,0],
       p2Hist: [0,0,0],
-      chat: [],
       timer: -1,
       showdown: false,
       dateAdded: firebase.database.ServerValue.TIMESTAMP
@@ -57,6 +56,11 @@ var game = {
     game.startMonitor(key);
     display.showdownBtn('p1');
     whoAmI = 'p1';
+    database.ref('/games/' + key + '/chat/').push({
+      message: userId + " entered game.",
+      dateAdded: firebase.database.ServerValue.TIMESTAMP
+    }); 
+    chat.display(key);
     return key;
   },
   join: function(userId, gameId) {
@@ -67,19 +71,20 @@ var game = {
     game.startMonitor(gameId);
     display.showdownBtn('p2');
     whoAmI = 'p2';
+    database.ref('/games/' + gameId + '/chat/').push({
+      message: userId + " entered game.",
+      dateAdded: firebase.database.ServerValue.TIMESTAMP
+    }); 
+    chat.display(gameId);
   },
   startMonitor: function(gameId) {
-    database.ref('/games/' + gameId + '/')
-            .on('value', function(snapshot){
-
+    database.ref('/games/' + gameId + '/').on('value', function(snapshot) {
       sv = snapshot.val();
 
       if (sv.p1User!=="") $('#p1-header').html(sv.p1User);
       if (sv.p2User!=="") $('#p2-header').html(sv.p2User);
 
       if (sv.showdown && sv.timer<=0) {
-        // display.results(sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
-
         if (sv.p1RPS===-1 || sv.p2RPS===-1) {
           if (sv.p1RPS===-1 && sv.p2RPS===-1) {
             db.updateHistory(-1, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
@@ -106,6 +111,8 @@ var game = {
       if (sv.p1Ready && sv.p2Ready) {
         timer.start(10);
       }
+      //trigger autoscroll on both clients
+      $(".log").stop().animate({ scrollTop: $(".log")[0].scrollHeight}, 1000);
     });
   }
 }
@@ -113,28 +120,30 @@ var game = {
 var clicks = {
   addPlayer: function() {
     $('#join-game').on('click', function() {
-      // $('#'+player).attr('data-user', userId);
-      let userId = $('#input-user').val();
-      
-      //look to see if user exists in db
-      database.ref('users/').once("value").then(function(snapshot) {
-        let playerExists = false;
-        snapshot.forEach(function(child) {
-          cv = child.val();
-          if (cv.userId === userId) playerExists = true; 
-        });
-        return playerExists;
-      }).then(function(playerExists){
-        if (!playerExists) {
-          database.ref('users/' + userId).set({ 
-            userId: userId,
-            history: [0,0,0],
-            dateAdded: firebase.database.ServerValue.TIMESTAMP
+      if ($('#input-user').val()!=="") {
+        let userId = $('#input-user').val();
+        //look to see if user exists in db
+        database.ref('users/').once("value").then(function(snapshot) {
+          let playerExists = false;
+          snapshot.forEach(function(child) {
+            cv = child.val();
+            if (cv.userId === userId) playerExists = true; 
           });
-        }
-      });
-      game.findActive(userId);
-      display.arena();
+          return playerExists;
+        }).then(function(playerExists){
+          if (!playerExists) {
+            database.ref('users/' + userId).set({ 
+              userId: userId,
+              history: [0,0,0],
+              dateAdded: firebase.database.ServerValue.TIMESTAMP
+            });
+          }
+        });
+        game.findActive(userId);
+        display.arena();
+        chat.handleClick();
+        chat.handleEnter();
+      }
     });
   },
   showDown: function(player) {
@@ -246,9 +255,7 @@ var timer = {
     $('#timer').html(sec);
     $('.arena').attr('count', "0");
 
-    if (intervalId) {
-      clearInterval(intervalId);
-    }
+    if (intervalId) clearInterval(intervalId);
     intervalId = setInterval(function() {
       let count = parseInt($('.arena').attr('count'));
       count++;
@@ -300,6 +307,9 @@ var db = {
     database.ref('/games/' + gameId + '/').update({active: true});
   },
   updateSignOut: function() {
+
+  },
+  updateDisconnect: function() {
 
   }
 }
