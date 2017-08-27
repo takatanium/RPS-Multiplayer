@@ -24,16 +24,25 @@
   		<div class="player" id="p1">
   			<h2>Player 1</h2>
   			<div class="player-btn">
-  				<button class="showdown-btn">SHOWDOWN</button>
+          <button class="add-btn" id="p1-add">ADD PLAYER</button>
+          <button class="showdown-btn" id="p1-showdown">SHOWDOWN</button>
+          <button class="rock-btn" id="p1-rock">ROCK</button>
+          <button class="paper-btn" id="p1-paper">PAPER</button>
+          <button class="sciss-btn" id="p1-sciss">SCISSORS</button>
   			</div>
   		</div>
-  		<div class="arena"></div>
+  		<div class="arena">
+        <div class="timer">Timer: <span id="timer"></span></div>
+        <div class="result">Result: <span id="result"></span></div>
+      </div>
   		<div class="player" id="p2">
   			<h2>Player 2</h2>
   			<div class="player-btn">
-  				<button class="rock-btn">ROCK</button>
-  				<button class="paper-btn">PAPER</button>
-  				<button class="sciss-btn">SCISSORS</button>
+          <button class="add-btn" id="p2-add">ADD PLAYER</button>
+          <button class="showdown-btn" id="p2-showdown">SHOWDOWN</button>
+  				<button class="rock-btn" id="p2-rock">ROCK</button>
+  				<button class="paper-btn" id="p2-paper">PAPER</button>
+  				<button class="sciss-btn" id="p2-sciss">SCISSORS</button>
   			</div>
   		</div>
   	</div>
@@ -68,6 +77,9 @@
   </footer> -->
 
 	<script src="https://code.jquery.com/jquery-3.2.1.js" integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE=" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/4.3.0/firebase.js"></script>
+  
+  <script src="assets/js/game.js"></script>
 	<script src="assets/js/taunts.js"></script>
 </body>
 

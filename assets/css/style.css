@@ -100,6 +100,17 @@ button {
   border-bottom: solid black 2px;
 }
 
+.arena {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.timer,
+.result {
+  width: 100%;
+  text-align: center;
+}
 .taunts {
   display: flex;
   flex-direction: row;
