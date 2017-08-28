@@ -23,8 +23,11 @@ var game = {
     database.ref('games/').once('value').then(function(snapshot) {
       let active = "";
       snapshot.forEach(function(child) {
-        if (!child.val().active) {
-          active = child.val().id;
+        let cv = child.val();
+        if (!cv.active) {
+          if (cv.p1User!==userId && cv.p2User!==userId) {
+            active = cv.id;
+          }
         }
       });
       return active;
@@ -53,14 +56,17 @@ var game = {
     });
     $('#p1').attr('data-userId', userId);
     $('#p1-header').html(userId);
+    $('#p2-header').html("Waiting for Connection");
     game.startMonitor(key);
     display.showdownBtn('p1');
     whoAmI = 'p1';
     database.ref('/games/' + key + '/chat/').push({
-      message: userId + " entered game.",
+      type: "log",
+      message: "--- " + userId + " entered game ---",
       dateAdded: firebase.database.ServerValue.TIMESTAMP
     }); 
     chat.display(key);
+    game.startUserMonitor('p1', userId);
     return key;
   },
   join: function(userId, gameId) {
@@ -72,17 +78,25 @@ var game = {
     display.showdownBtn('p2');
     whoAmI = 'p2';
     database.ref('/games/' + gameId + '/chat/').push({
-      message: userId + " entered game.",
+      type: "log",
+      message: "--- " + userId + " entered game ---",
       dateAdded: firebase.database.ServerValue.TIMESTAMP
     }); 
+    game.startUserMonitor('p2', userId);
     chat.display(gameId);
   },
   startMonitor: function(gameId) {
     database.ref('/games/' + gameId + '/').on('value', function(snapshot) {
       sv = snapshot.val();
 
-      if (sv.p1User!=="") $('#p1-header').html(sv.p1User);
-      if (sv.p2User!=="") $('#p2-header').html(sv.p2User);
+      if (sv.p1User!=="") {
+        $('#p1-header').html(sv.p1User);
+        display.currentStats('p1', sv.p1Hist);
+      }
+      if (sv.p2User!=="") {
+        $('#p2-header').html(sv.p2User);
+        display.currentStats('p2', sv.p2Hist);
+      }
 
       if (sv.showdown && sv.timer<=0) {
         if (sv.p1RPS===-1 || sv.p2RPS===-1) {
@@ -108,11 +122,16 @@ var game = {
         }
       }
 
-      if (sv.p1Ready && sv.p2Ready) {
-        timer.start(10);
-      }
+      if (sv.p1Ready && sv.p2Ready) timer.start(10);
+
       //trigger autoscroll on both clients
       $(".log").stop().animate({ scrollTop: $(".log")[0].scrollHeight}, 1000);
+    });
+  },
+  startUserMonitor: function(player, userId) {
+    database.ref('/users/' + userId + '/').on('value', function(snapshot) {
+      sv = snapshot.val();
+      display.allStats(player, sv.history);
     });
   }
 }
@@ -222,7 +241,7 @@ var display = {
   results: function(p1, p2, p1Choice, p2Choice) {
     let p1Throw, p2Throw;
     if (p1Choice === 0) {
-      p1Throw = "<p>" + p1 + "threw rock.</p>";
+      p1Throw = "<p>" + p1 + " threw rock.</p>";
     } else if (p1Choice === 1) {
       p1Throw = "<p>" + p1 + " threw paper.</p>";
     } else if (p1Choice === 2) {
@@ -232,7 +251,7 @@ var display = {
     }
 
     if (p2Choice === 0) {
-      p2Throw = "<p>" + p2+ "threw rock.</p>";
+      p2Throw = "<p>" + p2+ " threw rock.</p>";
     } else if (p2Choice === 1) {
       p2Throw = "<p>" + p2 + " threw paper.</p>";
     } else if (p2Choice === 2) {
@@ -242,7 +261,41 @@ var display = {
     }
 
     $('#result').html(p1Throw).append(p2Throw);
-  }
+  },
+  currentStats: function(player, pHist) {
+    let gameHist = $('#' + player + '-current-hist');
+
+    let cHistTitle = $('<p>').text("--- Current Game ---").addClass('center-text');
+    let cHistWinsP = $('<p>').text("Wins: ");
+    let cHistWins = $('<span>').attr('id', player+'-current-wins').text(pHist[1]);
+    cHistWinsP.append(cHistWins);
+    let cHistLossesP = $('<p>').text("Losses: ");
+    let cHistLosses = $('<span>').attr('id', player+'-current-losses').text(pHist[2]);
+    cHistLossesP.append(cHistLosses);
+    let cHistTiesP = $('<p>').text("Ties: ");
+    let cHistTies = $('<span>').attr('id', player+'-current-ties').text(pHist[0]);
+    cHistTiesP.append(cHistTies);
+
+    gameHist.html(cHistTitle).append(cHistWinsP)
+            .append(cHistLossesP).append(cHistTiesP);
+  },
+  allStats: function(player, pHist) {
+    let gameHist = $('#' + player + '-all-hist');
+
+    let aHistTitle = $('<p>').text("--- All Time ---").addClass('center-text');
+    let aHistWinsP = $('<p>').text("Wins: ");
+    let aHistWins = $('<span>').attr('id', player+'-all-wins').text(pHist[1]);
+    aHistWinsP.append(aHistWins);
+    let aHistLossesP = $('<p>').text("Losses: ");
+    let aHistLosses = $('<span>').attr('id', player+'-all-losses').text(pHist[2]);
+    aHistLossesP.append(aHistLosses);
+    let aHistTiesP = $('<p>').text("Ties: ");
+    let aHistTies = $('<span>').attr('id', player+'-all-ties').text(pHist[0]);
+    aHistTiesP.append(aHistTies);
+
+    gameHist.html(aHistTitle).append(aHistWinsP)
+            .append(aHistLossesP).append(aHistTiesP);
+  }, 
 }
 
 var timer = {
@@ -283,10 +336,15 @@ var db = {
 
     switch (num) {
       case 0: $('#result').append("<p>You tied!</p>");
-              p1Hist[num]++; p2Hist[num]++; break;
+              p1Hist[num]++; p2Hist[num]++; 
+              db.updateUserHistory(0, p1, p2);
+              break;
       case 1: $('#result').append("<p>" + p1 + " won!</p>");
-              p1Hist[num]++; p2Hist[num+1]++; break;
+              p1Hist[num]++; p2Hist[num+1]++; 
+              db.updateUserHistory(1, p1, p2);
+              break;
       case 2: $('#result').append("<p>" + p2 + " won!</p>");
+              db.updateUserHistory(2, p1, p2);
               p1Hist[num]++; p2Hist[num-1]++; break;
       default: break;
     }
@@ -302,6 +360,25 @@ var db = {
     }
     database.ref('/games/' + $('.arena').data('gameid') + '/')
                               .update(storeData);
+  },
+  updateUserHistory: function(state, p1, p2) {
+    console.log("Attempt to update user history");
+    database.ref('users/' + $('#'+whoAmI).data('userid') + '/').once("value")
+    .then(function(snapshot) {
+      return snapshot.val().history;
+    }).then(function(history){
+      if (state===0) history[0]++;
+      else if (state===1) whoAmI === 'p1' ? history[1]++ : history[2]++;
+      else whoAmI === 'p1' ? history[2]++ : history[1]++;
+
+      if (whoAmI === 'p1') {
+        if (state===0) chat.logDB('You Tied!!');
+        else if (state===1) chat.logDB(p1 + ' Won!');
+        else chat.logDB(p2 + ' Won!');
+      }
+
+      database.ref('users/' + $('#'+whoAmI).data('userid') + '/').update({history: history});
+    });
   },
   updateActive: function(gameId) {
     database.ref('/games/' + gameId + '/').update({active: true});

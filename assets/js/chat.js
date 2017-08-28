@@ -14,9 +14,17 @@ chat = {
 	},
 	updateDB: function(message) {
 		database.ref('/games/' + $('.arena').data('gameid') + '/chat/').push({
+			type: "message",
 			message: $('#'+whoAmI).data('userid') + ": " + message,
 			dateAdded: firebase.database.ServerValue.TIMESTAMP
 		});                   
+	},
+	logDB: function(log) {
+		database.ref('/games/' + $('.arena').data('gameid') + '/chat/').push({
+			type: "log",
+			message: "--- "+log+" ---",
+			dateAdded: firebase.database.ServerValue.TIMESTAMP
+		});   
 	},
 	display: function(gameId) {
 		database.ref('/games/' + gameId + '/chat/')
@@ -24,6 +32,7 @@ chat = {
 
 		  let sv = snapshot.val();
 		  let message = $('<p>').addClass('log-message').text(sv.message);
+		  if (sv.type==="log") message.addClass('center-text');
 		  $('.log').append(message);
 		});
 	}

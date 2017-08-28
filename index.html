@@ -22,7 +22,7 @@
   	</div>
   	<div class="row">
   		<div class="player" id="p1">
-  			<h2 id="p1-header">Player 1</h2>
+  			<h2 id="p1-header"></h2>
   			<div class="player-btn" id="p1-btn-box">
 <!--           <input type="text" class="input-userid" id="p1-input-user">
           <button class="add-btn" id="p1-add">ADD PLAYER</button> -->
@@ -39,7 +39,7 @@
         <div class="result">Result: <span id="result"></span></div> -->
       </div>
   		<div class="player" id="p2">
-  			<h2 id="p2-header">Player 2</h2>
+  			<h2 id="p2-header"></h2>
   			<div class="player-btn" id='p2-btn-box'>
 <!--           <input type="text" class="input-userid" id="p2-input-user">
           <button class="add-btn" id="p2-add">ADD PLAYER</button> -->
@@ -63,12 +63,25 @@
   		<div class="stats"><h2>Stats</h2></div>
   	</div>
   	<div class="row">
-  		<div class="history" id="p1-history"></div>
+  		<div class="history" id="p1-history">
+        <div class="game-history" id="p1-current-hist">
+<!--           <p>Current Game</p>
+          <p>Wins: <span id="p1-current-wins"></span></p>
+          <p>Losses: <span id="p1-current-losses"></span></p>
+          <p>Ties: <span id="p1-current-ties"></span>
+          </p> -->
+        </div>
+        <div class="game-history" id="p1-all-hist">
+<!--           <p>All Time</p>
+          <p>Wins: <span id="p1-all-wins"></span></p>
+          <p>Losses: <span id="p1-all-losses"></span></p>
+          <p>Ties: <span id="p1-all-ties"></span></p> -->
+        </div>
+      </div>
 
   		<div class="chat">
   			<div class="log">
-          <!-- <p class="log-message">Message</p> -->
-
+          <!-- <p class="log-message">Test: Message</p> -->
         </div>
   			<div class="message">
   				<input type="text" id="text-message" placeholder="Type here">
@@ -76,7 +89,10 @@
   			</div>
   		</div>
 
-  		<div class="history" id="p2-history"></div>
+  		<div class="history" id="p2-history">
+        <div class="game-history" id="p2-current-hist"></div>  
+        <div class="game-history" id="p2-all-hist"></div>  
+      </div>
   	</div>
   </div>
 
