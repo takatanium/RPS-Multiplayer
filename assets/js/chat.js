@@ -19,8 +19,8 @@ chat = {
 			dateAdded: firebase.database.ServerValue.TIMESTAMP
 		});                   
 	},
-	logDB: function(log) {
-		database.ref('/games/' + $('.arena').data('gameid') + '/chat/').push({
+	logDB: function(log, gameId) {
+		database.ref('/games/' + gameId + '/chat/').push({
 			type: "log",
 			message: "--- "+log+" ---",
 			dateAdded: firebase.database.ServerValue.TIMESTAMP
@@ -37,3 +37,4 @@ chat = {
 		});
 	}
 }
+

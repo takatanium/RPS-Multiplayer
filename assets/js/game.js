@@ -12,32 +12,61 @@ var intervalId;
 var whoAmI = "";
 
 $(document).ready(function() {
-  game.initiate();
+  $('#join-game').on('click', function() { game.addPlayer();});
+  $(document).keyup(function(e) {if (e.which == 13) game.addPlayer()});
 });
 
+
 var game = {
-  initiate: function() {;
-    clicks.addPlayer();
+  addPlayer: function() {
+    if ($('#input-user').val() !== "") {
+      let userId = $('#input-user').val();
+      //look to see if user exists in db
+      database.ref('users/').once("value").then(function(snapshot) {
+        let playerExists = false;
+        snapshot.forEach(function(child) {
+          cv = child.val();
+          if (cv.userId === userId) playerExists = true; 
+        });
+        return playerExists;
+      }).then(function(playerExists){
+        if (!playerExists) {
+          database.ref('users/' + userId).set({ 
+            userId: userId,
+            history: [0,0,0],
+            dateAdded: firebase.database.ServerValue.TIMESTAMP
+          });
+        }
+      });
+      game.findActive(userId);
+      display.arena();
+      chat.handleClick();
+      chat.handleEnter();
+    }
   },
   findActive: function(userId) {
     database.ref('games/').once('value').then(function(snapshot) {
-      let active = "";
+      let active = ["", "p1", ""];
       snapshot.forEach(function(child) {
         let cv = child.val();
         if (!cv.active) {
           if (cv.p1User!==userId && cv.p2User!==userId) {
-            active = cv.id;
+            active[0] = cv.id;
+            cv.p1User === "" ? active[1] = 'p1' : active[1] = 'p2';
+            active[2] = cv.p2User;
           }
         }
       });
       return active;
-    }).then(function(id){ 
-      let init = id;
-      init === "" ? init = game.create(userId) : game.join(userId, init);
+    }).then(function(arr){ 
+      let init = arr[0];
+      init === "" ? init = game.create(userId) : game.join(userId, arr, init);
       $('.arena').attr('data-gameId', init);
     });
   },
   create: function(userId) {
+    whoAmI = 'p1';
+
     let key = database.ref('games/').push().key;
     database.ref('games/'+key).set({ 
       id: key,
@@ -54,56 +83,44 @@ var game = {
       showdown: false,
       dateAdded: firebase.database.ServerValue.TIMESTAMP
     });
-    $('#p1').attr('data-userId', userId);
-    $('#p1-header').html(userId);
     $('#p2-header').html("Waiting for Connection");
-    game.startMonitor(key);
-    display.showdownBtn('p1');
-    whoAmI = 'p1';
-    database.ref('/games/' + key + '/chat/').push({
-      type: "log",
-      message: "--- " + userId + " entered game ---",
-      dateAdded: firebase.database.ServerValue.TIMESTAMP
-    }); 
-    chat.display(key);
-    game.startUserMonitor('p1', userId);
+    db.onConnect(whoAmI, userId, key);
+
     return key;
   },
-  join: function(userId, gameId) {
-    database.ref('/games/' + gameId + '/').update({p2User: userId});
-    $('#p2').attr('data-userId', userId);
-    $('#p2-header').html(userId);
-    db.updateActive(gameId);
-    game.startMonitor(gameId);
-    display.showdownBtn('p2');
-    whoAmI = 'p2';
-    database.ref('/games/' + gameId + '/chat/').push({
-      type: "log",
-      message: "--- " + userId + " entered game ---",
-      dateAdded: firebase.database.ServerValue.TIMESTAMP
-    }); 
-    game.startUserMonitor('p2', userId);
-    chat.display(gameId);
+  join: function(userId, arr, gameId) {
+    whoAmI = arr[1];
+
+    if (whoAmI === 'p2') {
+      database.ref('/games/' + gameId + '/').update({p2User: userId});
+      db.updateActive(gameId, true);
+    }
+    else {
+      database.ref('/games/' + gameId + '/').update({p1User: userId});
+      arr[2] === "" ? db.updateActive(gameId, false) : db.updateActive(gameId, true);
+    }
+
+    db.onConnect(whoAmI, userId, gameId);
   },
   startMonitor: function(gameId) {
     database.ref('/games/' + gameId + '/').on('value', function(snapshot) {
       sv = snapshot.val();
 
-      if (sv.p1User!=="") {
+      if (sv.p1User !== "") {
         $('#p1-header').html(sv.p1User);
         display.currentStats('p1', sv.p1Hist);
       }
-      if (sv.p2User!=="") {
+      if (sv.p2User !== "") {
         $('#p2-header').html(sv.p2User);
         display.currentStats('p2', sv.p2Hist);
       }
 
-      if (sv.showdown && sv.timer<=0) {
-        if (sv.p1RPS===-1 || sv.p2RPS===-1) {
-          if (sv.p1RPS===-1 && sv.p2RPS===-1) {
+      if (sv.showdown && sv.timer <= 0) {
+        if (sv.p1RPS === -1 || sv.p2RPS === -1) {
+          if (sv.p1RPS === -1 && sv.p2RPS === -1) {
             db.updateHistory(-1, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
           }
-          else if (sv.p1RPS!==-1) {
+          else if (sv.p1RPS !== -1) {
             db.updateHistory(1, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
           }
           else {
@@ -137,34 +154,6 @@ var game = {
 }
 
 var clicks = {
-  addPlayer: function() {
-    $('#join-game').on('click', function() {
-      if ($('#input-user').val()!=="") {
-        let userId = $('#input-user').val();
-        //look to see if user exists in db
-        database.ref('users/').once("value").then(function(snapshot) {
-          let playerExists = false;
-          snapshot.forEach(function(child) {
-            cv = child.val();
-            if (cv.userId === userId) playerExists = true; 
-          });
-          return playerExists;
-        }).then(function(playerExists){
-          if (!playerExists) {
-            database.ref('users/' + userId).set({ 
-              userId: userId,
-              history: [0,0,0],
-              dateAdded: firebase.database.ServerValue.TIMESTAMP
-            });
-          }
-        });
-        game.findActive(userId);
-        display.arena();
-        chat.handleClick();
-        chat.handleEnter();
-      }
-    });
-  },
   showDown: function(player) {
     $('#'+player+'-showdown').on('click', function() {
       display.rpsBtns(player);
@@ -328,9 +317,6 @@ var timer = {
 }
 
 var db = {
-  deleteInactive: function() {
-
-  },
   updateHistory: function(num, p1Hist, p2Hist, p1, p2, p1Choice, p2Choice) {
     display.results(p1, p2, p1Choice, p2Choice);
 
@@ -362,7 +348,6 @@ var db = {
                               .update(storeData);
   },
   updateUserHistory: function(state, p1, p2) {
-    console.log("Attempt to update user history");
     database.ref('users/' + $('#'+whoAmI).data('userid') + '/').once("value")
     .then(function(snapshot) {
       return snapshot.val().history;
@@ -372,21 +357,55 @@ var db = {
       else whoAmI === 'p1' ? history[2]++ : history[1]++;
 
       if (whoAmI === 'p1') {
-        if (state===0) chat.logDB('You Tied!!');
-        else if (state===1) chat.logDB(p1 + ' Won!');
-        else chat.logDB(p2 + ' Won!');
+        if (state===0) chat.logDB('You Tied!!', $('.arena').data('gameid'));
+        else if (state===1) chat.logDB(p1 + ' Won!', $('.arena').data('gameid'));
+        else chat.logDB(p2 + ' Won!', $('.arena').data('gameid'));
       }
 
       database.ref('users/' + $('#'+whoAmI).data('userid') + '/').update({history: history});
     });
   },
-  updateActive: function(gameId) {
-    database.ref('/games/' + gameId + '/').update({active: true});
+  updateActive: function(gameId, status) {
+    database.ref('/games/' + gameId + '/').update({active: status});
   },
   updateSignOut: function() {
 
   },
-  updateDisconnect: function() {
+  onDisconnect: function(userId, gameId) {
+    //delete userid from gameid
+    database.ref('/games/' + gameId + '/chat/').onDisconnect().remove();
+    database.ref('/games/' + gameId + '/').onDisconnect().update({
+      active: false,
+      p1Hist: [0,0,0],
+      p2Hist: [0,0,0]
+    });
+    database.ref('/games/' + gameId + '/chat/').push().onDisconnect().set({
+      type: "log",
+      message: "--- " + userId + " signed out ---",
+      dateAdded: firebase.database.ServerValue.TIMESTAMP
+    });
 
+    if (whoAmI === "p2") {
+      database.ref('/games/' + gameId + '/').onDisconnect().update({
+        p2User: "",
+      });
+    }
+    else {
+      database.ref('/games/' + gameId + '/').onDisconnect().update({
+        p1User: "",
+      });
+    }
+  },
+  onConnect: function(which, userId, gameId) {
+    database.ref('/games/' + gameId + '/chat/').remove();
+
+    $('#'+which).attr('data-userId', userId);
+    $('#'+which+'-header').html(userId);
+    display.showdownBtn(which);
+    game.startUserMonitor(which, userId);
+    game.startMonitor(gameId);
+    chat.logDB(userId+ " entered game", gameId);
+    chat.display(gameId);
+    db.onDisconnect(userId, gameId);
   }
 }

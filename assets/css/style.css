@@ -114,6 +114,12 @@ button {
   justify-content: space-around;
 }
 
+.input-user-field,
+.add-btn {
+  width: 150px;
+  margin: 20px auto;
+}
+
 .timer,
 .result {
   width: 100%;
