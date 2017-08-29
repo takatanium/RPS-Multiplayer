@@ -9,11 +9,16 @@ var config = {
 firebase.initializeApp(config);
 var database = firebase.database();
 var intervalId;
-var whoAmI = "";
+var whoAmI = ""; 
 
 $(document).ready(function() {
   $('#join-game').on('click', function() { game.addPlayer();});
-  $(document).keyup(function(e) {if (e.which == 13) game.addPlayer()});
+  $(document).keyup(function(e) {
+    if (e.which == 13) {
+      if (whoAmI==="") game.addPlayer();
+    }
+  });
+  db.removeOrphaned();
 });
 
 
@@ -311,6 +316,7 @@ var timer = {
       if (timer <= 0) {
         clearInterval(intervalId);
         display.showdownBtn(whoAmI);
+        database.ref('/games/' + $('.arena').data('gameid') + '/').update({timer: -1});
       }
     }, 1000);
   }
@@ -369,7 +375,7 @@ var db = {
     database.ref('/games/' + gameId + '/').update({active: status});
   },
   updateSignOut: function() {
-
+    //make sure to set whoAmI back to ""
   },
   onDisconnect: function(userId, gameId) {
     //delete userid from gameid
@@ -377,7 +383,10 @@ var db = {
     database.ref('/games/' + gameId + '/').onDisconnect().update({
       active: false,
       p1Hist: [0,0,0],
-      p2Hist: [0,0,0]
+      p2Hist: [0,0,0],
+      p1RPS: -1,
+      p2RPS: -1,
+      timer: -1
     });
     database.ref('/games/' + gameId + '/chat/').push().onDisconnect().set({
       type: "log",
@@ -407,5 +416,16 @@ var db = {
     chat.logDB(userId+ " entered game", gameId);
     chat.display(gameId);
     db.onDisconnect(userId, gameId);
+  },
+  removeOrphaned: function() {
+    //find all game instances where no player names exist
+    database.ref('games/').once('value').then(function(snapshot) {
+      snapshot.forEach(function(child) {
+        let cv = child.val();
+        if (cv.p1User === "" && cv.p2User === "") {
+           database.ref('games/' + cv.id + '/').remove();
+        }
+      });
+    });  
   }
 }
