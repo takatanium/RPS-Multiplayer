@@ -16,6 +16,9 @@ $(document).ready(function() {
   $(document).keyup(function(e) {
     if (e.which == 13) {
       if (whoAmI==="") game.addPlayer();
+      // timer.start(10);
+      // timer.sunReset();
+      // timer.sunAnimation(10);
     }
   });
   db.removeOrphaned();
@@ -44,7 +47,8 @@ var game = {
         }
       });
       game.findActive(userId);
-      display.arena();
+      // display.arena();
+      display.sun();
       chat.handleClick();
       chat.handleEnter();
     }
@@ -162,6 +166,7 @@ var clicks = {
   showDown: function(player) {
     $('#'+player+'-showdown').on('click', function() {
       display.rpsBtns(player);
+      timer.sunReset();
       player === "p1" ? database.ref('/games/' + $('.arena').data('gameid') + '/')
                               .update({p1Ready: true}) :
                         database.ref('/games/' + $('.arena').data('gameid') + '/')
@@ -254,7 +259,10 @@ var display = {
       p2Throw = "<p>" + p2 + " was too slow...</p>";
     }
 
-    $('#result').html(p1Throw).append(p2Throw);
+    let result = $('<div>').addClass('result').text("Result: ");
+    result.append(p1Throw).append(p2Throw);
+
+    $('.arena').append(result);
   },
   currentStats: function(player, pHist) {
     let gameHist = $('#' + player + '-current-hist');
@@ -290,6 +298,16 @@ var display = {
     gameHist.html(aHistTitle).append(aHistWinsP)
             .append(aHistLossesP).append(aHistTiesP);
   }, 
+  sun: function() {
+    let div = $('<div>').addClass('sun');
+    let img = $('<img>').attr('id', 'sun-icon');
+    img.attr('src', 'assets/img/sun-test.png');
+    let time = $('<div>').addClass('timer').attr('id', 'timer');
+
+    div.append(img).append(time);
+
+    $('.arena').html(div);
+  }
 }
 
 var timer = {
@@ -301,6 +319,7 @@ var timer = {
     $('#result').empty();
     $('#timer').html(sec);
     $('.arena').attr('count', "0");
+    timer.sunAnimation(sec);
 
     if (intervalId) clearInterval(intervalId);
     intervalId = setInterval(function() {
@@ -319,6 +338,16 @@ var timer = {
         database.ref('/games/' + $('.arena').data('gameid') + '/').update({timer: -1});
       }
     }, 1000);
+  },
+  sunAnimation: function(sec) {
+    let time = sec * 1000;
+    $('.sun').animate({
+      top: "-=130px"
+    }, time, "linear");
+  },
+  sunReset: function() {
+    $('.result').remove();
+    $('.sun').css('top', '+=130');
   }
 }
 

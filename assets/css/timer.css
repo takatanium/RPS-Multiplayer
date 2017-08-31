@@ -1,0 +1,46 @@
+.sun {
+	position: relative;
+	margin: auto;
+	/*margin-bottom: 200px;*/
+	/*margin-bottom: -60px;*/
+	margin-bottom: 70px;
+	height: 128px;
+	width: 128px;
+	z-index: -1;
+/*	animation-name: sunrise;
+  animation-duration: 10s; 
+  animation-timing-function: linear; */
+}
+
+.sun-animation {
+	margin-bottom: 200px;
+	animation-name: sunrise;
+  animation-duration: 10s; 
+  animation-timing-function: linear; 
+}
+
+#sun-icon {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}
+
+.timer {
+	position: absolute;
+	top: 46px;
+	left: 57px;
+	z-index: 10;
+}
+
+#timer {
+	font-size: 30px;
+}
+
+@keyframes sunrise {
+  from {
+    transform: translate(0, 130px);
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}

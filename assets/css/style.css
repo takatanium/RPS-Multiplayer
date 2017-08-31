@@ -120,11 +120,18 @@ button {
   margin: 20px auto;
 }
 
-.timer,
+/*.timer,
 .result {
   width: 100%;
   text-align: center;
+}*/
+
+.result {
+  position: absolute;
+  bottom: 185px;
+  left: 245px;
 }
+
 .taunts {
   display: flex;
   flex-direction: row;
@@ -168,6 +175,7 @@ button {
   flex: 1;
   padding: 5px 5px 5px 5px;
   overflow-y: scroll;
+  background-image: url("../img/vintage.png");
 }
 
 #text-message {
