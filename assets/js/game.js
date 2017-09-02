@@ -12,22 +12,13 @@ var intervalId;
 var whoAmI = ""; 
 
 $(document).ready(function() {
-  $('#join-game').on('click', function() { game.addPlayer();});
-  $(document).keyup(function(e) {
-    if (e.which == 13) {
-      if (whoAmI==="") game.addPlayer();
-      // timer.start(10);
-      // timer.sunReset();
-      // timer.sunAnimation(10);
-    }
-  });
-  db.removeOrphaned();
+  display.reset();
 });
 
 
 var game = {
   addPlayer: function() {
-    if ($('#input-user').val() !== "") {
+    if ($('#input-user').val().trim() !== "") {
       let userId = $('#input-user').val();
       //look to see if user exists in db
       database.ref('users/').once("value").then(function(snapshot) {
@@ -51,6 +42,9 @@ var game = {
       display.sun();
       chat.handleClick();
       chat.handleEnter();
+    }
+    else {
+      $('#input-user').val('');
     }
   },
   findActive: function(userId) {
@@ -92,7 +86,7 @@ var game = {
       showdown: false,
       dateAdded: firebase.database.ServerValue.TIMESTAMP
     });
-    $('#p2-header').html("Waiting for Connection");
+    // $('#p2-header').html("Waiting for Connection");
     db.onConnect(whoAmI, userId, key);
 
     return key;
@@ -115,40 +109,82 @@ var game = {
     database.ref('/games/' + gameId + '/').on('value', function(snapshot) {
       sv = snapshot.val();
 
-      if (sv.p1User !== "") {
-        $('#p1-header').html(sv.p1User);
-        display.currentStats('p1', sv.p1Hist);
-      }
-      if (sv.p2User !== "") {
-        $('#p2-header').html(sv.p2User);
-        display.currentStats('p2', sv.p2Hist);
-      }
-
-      if (sv.showdown && sv.timer <= 0) {
-        if (sv.p1RPS === -1 || sv.p2RPS === -1) {
-          if (sv.p1RPS === -1 && sv.p2RPS === -1) {
-            db.updateHistory(-1, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
-          }
-          else if (sv.p1RPS !== -1) {
-            db.updateHistory(1, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
+      //Main gameplay monitor
+      if (sv.p1User !== "" && sv.p2User !== "") {
+        if (sv.showdown && sv.timer <= 0) {
+          if (sv.p1RPS === -1 || sv.p2RPS === -1) {
+            if (sv.p1RPS === -1 && sv.p2RPS === -1) {
+              db.updateHistory(-1, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
+            }
+            else if (sv.p1RPS !== -1) {
+              db.updateHistory(1, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
+            }
+            else {
+              db.updateHistory(2, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
+            }
           }
           else {
-            db.updateHistory(2, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
+            let checkP1Win = sv.p1RPS - sv.p2RPS;
+            if (checkP1Win === 0) {
+              db.updateHistory(0, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
+            } else if (checkP1Win === 1 || checkP1Win === -2) {
+              db.updateHistory(1, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
+            } else {
+              db.updateHistory(2, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
+            }
           }
         }
+      }
+      else {
+        clearInterval(intervalId);
+        db.updateShowDown(gameId, false);
+      }
+
+      if (whoAmI === 'p1') {
+        display.currentStats('p1', sv.p1Hist);
+
+        if (sv.p2User === ''){
+          $('#p2-header').html("Waiting for Connection");
+          $('#p1-btn-box').empty();
+          $('#timer').empty();
+          $('.result').empty();
+        } 
         else {
-          let checkP1Win = sv.p1RPS - sv.p2RPS;
-          if (checkP1Win === 0) {
-            db.updateHistory(0, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
-          } else if (checkP1Win === 1 || checkP1Win === -2) {
-            db.updateHistory(1, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
-          } else {
-            db.updateHistory(2, sv.p1Hist, sv.p2Hist, sv.p1User, sv.p2User, sv.p1RPS, sv.p2RPS);
+          $('#p2-header').html(sv.p2User);
+          display.currentStats('p2', sv.p2Hist);
+          if (sv.timer === -1) display.showdownBtn('p1');
+
+          if (sv.p1Ready) {
+            $('#p1-btn-box').empty();
+          }
+        }
+      } 
+      else {
+        display.currentStats('p2', sv.p2Hist);
+
+        if (sv.p1User === ''){
+          $('#p1-header').html("Waiting for Connection");
+          $('#p2-btn-box').empty();
+          $('#timer').empty();
+          $('.result').empty();
+        } 
+        else {
+          $('#p1-header').html(sv.p1User);
+          display.currentStats('p1', sv.p1Hist);
+          if (sv.timer === -1) display.showdownBtn('p2');
+
+          if (sv.p2Ready) {
+            $('#p2-btn-box').empty();
           }
         }
       }
 
-      if (sv.p1Ready && sv.p2Ready) timer.start(10);
+      //both players accept duel
+      if (sv.p1Ready && sv.p2Ready) { 
+        timer.start(10);
+        display.rpsBtns(whoAmI);
+      }
+
 
       //trigger autoscroll on both clients
       $(".log").stop().animate({ scrollTop: $(".log")[0].scrollHeight}, 1000);
@@ -165,8 +201,9 @@ var game = {
 var clicks = {
   showDown: function(player) {
     $('#'+player+'-showdown').on('click', function() {
-      display.rpsBtns(player);
+      $('#'+player+'-btn-box').empty();
       timer.sunReset();
+      chat.logDB($('#'+player).data('userid') + " will duel at high noon!", $('.arena').data('gameid'));
       player === "p1" ? database.ref('/games/' + $('.arena').data('gameid') + '/')
                               .update({p1Ready: true}) :
                         database.ref('/games/' + $('.arena').data('gameid') + '/')
@@ -192,6 +229,38 @@ var clicks = {
 }
 
 var display = {
+  reset: function() {
+    whoAmI = "";
+    $('.signout').empty();
+    $('#p1-header').empty();
+    $('#p2-header').empty();
+    $('#p1-btn-box').empty();
+    $('#p2-btn-box').empty();
+    $('#p1-current-hist').empty();
+    $('#p1-all-hist').empty();
+    $('#p2-current-hist').empty();
+    $('#p2-all-hist').empty();
+    $('.log').empty();
+    $('.arena').empty();
+    $('.arena').removeAttr('data-gameId');
+    $('#p1').removeAttr('data-userid');
+    $('#p2').removeAttr('data-userid');
+    //show login screen
+    let input = $('<input>').addClass('input-user-field').attr({
+      id: 'input-user',
+      placeholder: 'Enter Name',
+      autofocus: 'autofocus'
+    }).appendTo('.arena');
+    let btn = $('<button>').addClass('add-btn').attr('id', 'join-game');
+    btn.text('JOIN GAME').appendTo('.arena');
+    $('#join-game').on('click', function() { game.addPlayer();});
+    $(document).keyup(function(e) {
+      if (e.which == 13) {
+        if (whoAmI==="") game.addPlayer();
+      }
+    });
+    db.removeOrphaned();
+  },
   rpsBtns: function(player) {
     let rock = $('<button>').addClass('rock-btn');
     rock.attr('id', player+'-rock').text('ROCK');
@@ -307,6 +376,13 @@ var display = {
     div.append(img).append(time);
 
     $('.arena').html(div);
+  },
+  signout: function(player, userId, gameId) {
+    let btn = $('<button>').addClass('sign-btn').text('Signout');
+    $('#'+player+'-signout').append(btn);
+    $('#'+player+'-signout').on('click', function() {
+      location.reload();
+    });
   }
 }
 
@@ -334,7 +410,6 @@ var timer = {
 
       if (timer <= 0) {
         clearInterval(intervalId);
-        display.showdownBtn(whoAmI);
         database.ref('/games/' + $('.arena').data('gameid') + '/').update({timer: -1});
       }
     }, 1000);
@@ -348,6 +423,7 @@ var timer = {
   sunReset: function() {
     $('.result').remove();
     $('.sun').css('top', '+=130');
+    $('.timer').empty();
   }
 }
 
@@ -403,8 +479,8 @@ var db = {
   updateActive: function(gameId, status) {
     database.ref('/games/' + gameId + '/').update({active: status});
   },
-  updateSignOut: function() {
-    //make sure to set whoAmI back to ""
+  updateShowDown: function(gameId, status) {
+    database.ref('/games/' + gameId + '/').update({showdown: status});
   },
   onDisconnect: function(userId, gameId) {
     //delete userid from gameid
@@ -439,11 +515,11 @@ var db = {
 
     $('#'+which).attr('data-userId', userId);
     $('#'+which+'-header').html(userId);
-    display.showdownBtn(which);
     game.startUserMonitor(which, userId);
     game.startMonitor(gameId);
     chat.logDB(userId+ " entered game", gameId);
     chat.display(gameId);
+    display.signout(which, userId, gameId);
     db.onDisconnect(userId, gameId);
   },
   removeOrphaned: function() {
